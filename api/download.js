@@ -8,11 +8,10 @@ export default async function handler(req, res) {
   try {
     const { url } = req.body;
 
-    // The Server makes the request to Cobalt, bypassing CORS
-    const response = await axios.post('https://api.cobalt.tools/api/json', {
+    // Updated to v10 compatible instance and parameters
+    const response = await axios.post('https://cobalt.api.un-lock.xyz/api/json', {
       url: url,
-      vQuality: '1080',
-      isAudioOnly: false,
+      videoQuality: '1080',
       filenameStyle: 'pretty'
     }, {
       headers: {
