@@ -71,8 +71,8 @@ function App() {
     setVideoInfo(null)
 
     try {
-      // Using Cobalt API (A popular open-source video downloader API)
-      const response = await axios.post('https://api.cobalt.tools/api/json', {
+      // Trying a different stable Cobalt instance to avoid CORS/Network issues
+      const response = await axios.post('https://cobalt.api.un-lock.xyz/api/json', {
         url: url,
         vQuality: '1080',
         isAudioOnly: false,
