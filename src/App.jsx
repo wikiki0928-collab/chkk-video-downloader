@@ -71,17 +71,9 @@ function App() {
     setVideoInfo(null)
 
     try {
-      // Trying a different stable Cobalt instance to avoid CORS/Network issues
-      const response = await axios.post('https://cobalt.api.un-lock.xyz/api/json', {
-        url: url,
-        vQuality: '1080',
-        isAudioOnly: false,
-        filenameStyle: 'pretty'
-      }, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
+      // Calling our own Vercel API Proxy to bypass CORS
+      const response = await axios.post('/api/download', {
+        url: url
       })
 
       const data = response.data
