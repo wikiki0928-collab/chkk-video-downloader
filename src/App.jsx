@@ -70,49 +70,101 @@ function App() {
     setError(null)
     setVideoInfo(null)
 
-    // Simulate API analysis
-    setTimeout(() => {
-      setIsAnalyzing(false)
-      setVideoInfo({
-        title: platform === 'yt' ? 'Amazing YouTube Video' : 'Viral Facebook Video',
-        duration: '12:45',
-        thumbnail: platform === 'yt' 
-          ? 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400&q=80' 
-          : 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&q=80',
-        formats: [
-          { quality: '1080p (HD)', size: '124 MB', type: 'video' },
-          { quality: '720p', size: '45 MB', type: 'video' },
-          { quality: 'MP3 (Audio)', size: '8 MB', type: 'audio' }
-        ]
+    try {
+      // Using Cobalt API (A popular open-source video downloader API)
+      const response = await axios.post('https://api.cobalt.tools/api/json', {
+        url: url,
+        vQuality: '1080',
+        isAudioOnly: false,
+        filenameStyle: 'pretty'
+      }, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       })
-    }, 1500)
+
+      const data = response.data
+
+      if (data.status === 'error') {
+        throw new Error(data.text || 'Failed to parse video')
+      }
+
+      // If cobalt returns a direct stream link immediately
+      if (data.status === 'stream' || data.status === 'redirect') {
+        setVideoInfo({
+          title: platform === 'yt' ? 'YouTube Video' : 'Facebook Video',
+          duration: 'Ready to Download',
+          thumbnail: platform === 'yt' 
+            ? 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400&q=80' 
+            : 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&q=80',
+          downloadUrl: data.url,
+          formats: [
+            { quality: 'Best Quality (Auto)', size: 'Dynamic', type: 'video', url: data.url },
+            { quality: 'Audio Only (MP3)', size: 'Dynamic', type: 'audio', url: data.url + '&isAudioOnly=true' }
+          ]
+        })
+      } else if (data.status === 'picker') {
+        // Handle multiple video options if provided
+        setVideoInfo({
+          title: 'Multiple Qualities Found',
+          duration: 'Select below',
+          thumbnail: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400&q=80',
+          formats: data.picker.map(item => ({
+            quality: item.type || 'Video',
+            size: 'Varies',
+            type: 'video',
+            url: item.url
+          }))
+        })
+      }
+    } catch (err) {
+      console.error('Analysis failed:', err)
+      setError(err.response?.data?.text || err.message || 'Failed to parse this video. It might be private or age-restricted.')
+    } finally {
+      setIsAnalyzing(false)
+    }
   }
 
   const startDownload = async (format) => {
     setIsDownloading(true)
     setProgress(0)
 
-    // Mock progress
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          return 100
-        }
-        return prev + 5
-      })
-    }, 200)
+    try {
+      // For a real download, we can either use window.open or a more robust fetch-based progress if needed
+      // But usually, a direct link is provided by Cobalt
+      const link = document.createElement('a')
+      link.href = format.url
+      link.target = '_blank'
+      link.download = '' // Let server decide filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
 
-    setTimeout(() => {
+      // Simulate progress bar for better UX while the browser handles the download
+      const interval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval)
+            return 100
+          }
+          return prev + 10
+        })
+      }, 300)
+
+      setTimeout(() => {
+        setIsDownloading(false)
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#4f46e5', '#0ea5e9', '#6366f1']
+        })
+      }, 3000)
+    } catch (err) {
+      setError('Download initialization failed. Please try again.')
       setIsDownloading(false)
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#4f46e5', '#0ea5e9', '#6366f1']
-      })
-      alert(`Success! Downloaded ${videoInfo.title} in ${format.quality}`)
-    }, 5000)
+    }
   }
 
   return (
